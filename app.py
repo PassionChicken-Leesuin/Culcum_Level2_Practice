@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 DATA_PATH = Path(__file__).with_name("sentences.csv")
@@ -130,13 +131,30 @@ if feedback and feedback["prompt"] == prompt:
     else:
         st.info("이 문장은 답지에서 확인되지 않아 자동 채점하지 않았습니다.")
 
-    st.text_input(
-        "다음 문장으로",
-        placeholder="여기를 클릭한 뒤 Enter를 누르세요.",
-        label_visibility="collapsed",
-        key=f"advance_input_{index}",
-        on_change=advance_sentence,
-        args=(index,),
+    components.html(
+        """
+        <script>
+        (() => {
+          try {
+            const page = window.parent.document;
+            if (page.__level2EnterHandler) return;
+            page.__level2EnterHandler = true;
+            page.addEventListener("keydown", (event) => {
+              if (event.key !== "Enter" || event.ctrlKey || event.altKey || event.metaKey) return;
+              const button = [...page.querySelectorAll("button")]
+                .find((item) => item.innerText.trim().startsWith("다음 문장"));
+              if (!button || button.disabled) return;
+              event.preventDefault();
+              button.click();
+            }, true);
+          } catch (error) {
+            console.error("Enter shortcut setup failed", error);
+          }
+        })();
+        </script>
+        """,
+        height=0,
+        scrolling=False,
     )
     if st.button("다음 문장 →", type="primary", use_container_width=True):
         advance_sentence(index)
@@ -174,7 +192,7 @@ else:
 
 with st.expander("사용 방법"):
     st.write(
-        "문장을 한 번씩 무작위 순서로 풀고, 답을 입력하고 Enter 또는 제출 버튼을 누르면 정답 여부를 확인합니다. 채점 후 입력란을 클릭하고 Enter를 누르거나 다음 버튼을 누르면 이동합니다. "
+        "문장을 한 번씩 무작위 순서로 풀고, 답을 입력하고 Enter 또는 제출 버튼을 누르면 정답 여부를 확인합니다. 채점 결과 화면에서 Enter 또는 다음 버튼을 누르면 이동합니다. "
         f"현재 답지에서 확인된 문장은 {len(answer_key)}개입니다. "
         "답지에서 찾지 못한 문장은 자동 채점하지 않습니다. "
         "입력 기록은 이 브라우저 세션에서 라운드가 끝날 때까지 볼 수 있습니다."
