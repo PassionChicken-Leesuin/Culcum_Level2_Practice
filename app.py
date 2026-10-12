@@ -6,7 +6,6 @@ import re
 from pathlib import Path
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 
 DATA_PATH = Path(__file__).with_name("sentences.csv")
@@ -131,32 +130,7 @@ if feedback and feedback["prompt"] == prompt:
     else:
         st.info("이 문장은 답지에서 확인되지 않아 자동 채점하지 않았습니다.")
 
-    components.html(
-        """
-        <script>
-        (() => {
-          try {
-            const page = window.parent.document;
-            if (page.__level2EnterHandler) return;
-            page.__level2EnterHandler = true;
-            page.addEventListener("keydown", (event) => {
-              if (event.key !== "Enter" || event.ctrlKey || event.altKey || event.metaKey) return;
-              const button = [...page.querySelectorAll("button")]
-                .find((item) => item.innerText.trim().startsWith("다음 문장"));
-              if (!button || button.disabled) return;
-              event.preventDefault();
-              button.click();
-            }, true);
-          } catch (error) {
-            console.error("Enter shortcut setup failed", error);
-          }
-        })();
-        </script>
-        """,
-        height=0,
-        scrolling=False,
-    )
-    if st.button("다음 문장 →", type="primary", use_container_width=True):
+    if st.button("다음 문장 →", type="primary", use_container_width=True, shortcut="Enter"):
         advance_sentence(index)
         st.rerun()
 
