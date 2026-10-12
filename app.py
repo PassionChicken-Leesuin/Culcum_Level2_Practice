@@ -9,6 +9,7 @@ import streamlit as st
 
 
 DATA_PATH = Path(__file__).with_name("sentences.csv")
+ANSWER_PATH = Path(__file__).with_name("answer_key.csv")
 
 
 def load_sentences() -> list[str]:
@@ -28,12 +29,30 @@ def load_sentences() -> list[str]:
     return unique
 
 
+def load_answer_key() -> dict[str, str]:
+    if not ANSWER_PATH.exists():
+        return {}
+    with ANSWER_PATH.open("r", encoding="utf-8-sig", newline="") as csv_file:
+        return {
+            row["한글 예문"].strip(): row["영어 정답"].strip()
+            for row in csv.DictReader(csv_file)
+            if row.get("한글 예문", "").strip() and row.get("영어 정답", "").strip()
+        }
+
+
+def normalize_answer(answer: str) -> str:
+    answer = answer.lower().replace("’", "'")
+    return re.sub(r"[^a-z0-9]", "", answer)
+
+
 def start_round() -> None:
     sentences = load_sentences()
     random.SystemRandom().shuffle(sentences)
     st.session_state.deck = sentences
     st.session_state.index = 0
     st.session_state.answers = []
+    st.session_state.feedback = None
+    st.session_state.answer_input = ""
 
 
 st.set_page_config(page_title="Level 2 영어 문장 연습", page_icon="✍️", layout="centered")
@@ -66,6 +85,7 @@ if "deck" not in st.session_state:
 deck: list[str] = st.session_state.deck
 index: int = st.session_state.index
 answers: list[dict[str, str]] = st.session_state.answers
+answer_key = load_answer_key()
 
 if index >= len(deck):
     st.success(f"한 바퀴 완료! {len(deck)}개 문장을 모두 연습했습니다.")
@@ -75,6 +95,10 @@ if index >= len(deck):
             st.caption(f"{number} / {len(answers)}")
             st.markdown(f"**한글**　{item['prompt']}")
             st.markdown(f"**내 답**　{item['answer']}")
+            if item.get("result"):
+                st.markdown(f"**결과**　{item['result']}")
+                if item.get("correct_answer"):
+                    st.markdown(f"**정답**　{item['correct_answer']}")
     if st.button("새 순서로 다시 시작", type="primary", use_container_width=True):
         start_round()
         st.rerun()
@@ -83,28 +107,60 @@ if index >= len(deck):
 st.progress(index / len(deck), text=f"{index + 1} / {len(deck)}")
 st.markdown('<div class="eyebrow">영어로 번역해 보세요</div>', unsafe_allow_html=True)
 st.markdown(f'<div class="prompt-card"><p>{deck[index]}</p></div>', unsafe_allow_html=True)
-st.caption("영어 답을 입력하고 Enter 또는 아래 버튼을 누르면 다음 문장으로 넘어갑니다.")
+prompt = deck[index]
+feedback = st.session_state.feedback
+if feedback and feedback["prompt"] == prompt:
+    if feedback["result"] == "correct":
+        st.success("정답!")
+    elif feedback["result"] == "incorrect":
+        st.error("오답입니다.")
+        st.markdown(f"**정답:** {feedback['correct_answer']}")
+    else:
+        st.info("이 문장은 답지에서 확인되지 않아 자동 채점하지 않았습니다.")
 
-with st.form(key=f"answer-{index}", clear_on_submit=True):
-    answer = st.text_input("영어 답", placeholder="Type your English translation…", label_visibility="collapsed")
-    submitted = st.form_submit_button(
-        "답 입력하고 다음 문장 →",
-        type="primary",
-        use_container_width=True,
-    )
-
-if submitted:
-    if answer.strip():
-        answers.append({"prompt": deck[index], "answer": answer.strip()})
+    if st.button("다음 문장 →", type="primary", use_container_width=True):
+        item = {"prompt": prompt, "answer": feedback["answer"]}
+        if feedback.get("result") in {"correct", "incorrect"}:
+            item["result"] = "정답" if feedback["result"] == "correct" else "오답"
+            item["correct_answer"] = feedback.get("correct_answer", "")
+        answers.append(item)
         st.session_state.answers = answers
         st.session_state.index = index + 1
+        st.session_state.feedback = None
+        st.session_state.answer_input = ""
         st.rerun()
-    else:
-        st.warning("영어 답을 입력한 뒤 다음 문장 버튼을 눌러 주세요.")
+else:
+    st.caption("영어 답을 입력하고 버튼을 누르세요. 답지에 있는 문장은 즉시 채점합니다.")
+    st.text_input(
+        "영어 답",
+        placeholder="Type your English translation…",
+        label_visibility="collapsed",
+        key="answer_input",
+    )
+    if st.button("답 제출", type="primary", use_container_width=True):
+        answer = st.session_state.answer_input.strip()
+        if not answer:
+            st.warning("영어 답을 입력해 주세요.")
+        else:
+            correct_answer = answer_key.get(prompt)
+            if correct_answer is None:
+                result = "unavailable"
+            elif normalize_answer(answer) == normalize_answer(correct_answer):
+                result = "correct"
+            else:
+                result = "incorrect"
+            st.session_state.feedback = {
+                "prompt": prompt,
+                "answer": answer,
+                "correct_answer": correct_answer or "",
+                "result": result,
+            }
+            st.rerun()
 
 with st.expander("사용 방법"):
     st.write(
-        "문장을 한 번씩 무작위 순서로 풀고, 영어 답을 입력하면 다음 문제로 이동합니다. "
-        "현재 자료에는 한글 예문만 있어 자동 정답 판정은 하지 않습니다. "
+        "문장을 한 번씩 무작위 순서로 풀고, 답을 제출하면 정답 여부를 확인한 뒤 다음 문제로 이동합니다. "
+        f"현재 답지에서 확인된 문장은 {len(answer_key)}개입니다. "
+        "답지에서 찾지 못한 문장은 자동 채점하지 않습니다. "
         "입력 기록은 이 브라우저 세션에서 라운드가 끝날 때까지 볼 수 있습니다."
     )
