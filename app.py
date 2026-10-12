@@ -54,6 +54,19 @@ def start_round() -> None:
     st.session_state.feedback = None
 
 
+def advance_sentence(index: int) -> None:
+    feedback = st.session_state.feedback
+    if not feedback or st.session_state.index != index:
+        return
+    item = {"prompt": feedback["prompt"], "answer": feedback["answer"]}
+    if feedback.get("result") in {"correct", "incorrect"}:
+        item["result"] = "정답" if feedback["result"] == "correct" else "오답"
+        item["correct_answer"] = feedback.get("correct_answer", "")
+    st.session_state.answers.append(item)
+    st.session_state.index = index + 1
+    st.session_state.feedback = None
+
+
 st.set_page_config(page_title="Level 2 영어 문장 연습", page_icon="✍️", layout="centered")
 
 st.markdown(
@@ -117,23 +130,16 @@ if feedback and feedback["prompt"] == prompt:
     else:
         st.info("이 문장은 답지에서 확인되지 않아 자동 채점하지 않았습니다.")
 
-    with st.form(f"next_form_{index}"):
-        st.text_input(
-            "다음 문장으로",
-            placeholder="Enter를 눌러 다음 문장으로 이동하세요.",
-            label_visibility="collapsed",
-            key=f"advance_input_{index}",
-        )
-        next_clicked = st.form_submit_button("다음 문장 →", type="primary", use_container_width=True)
-    if next_clicked:
-        item = {"prompt": prompt, "answer": feedback["answer"]}
-        if feedback.get("result") in {"correct", "incorrect"}:
-            item["result"] = "정답" if feedback["result"] == "correct" else "오답"
-            item["correct_answer"] = feedback.get("correct_answer", "")
-        answers.append(item)
-        st.session_state.answers = answers
-        st.session_state.index = index + 1
-        st.session_state.feedback = None
+    st.text_input(
+        "다음 문장으로",
+        placeholder="여기를 클릭한 뒤 Enter를 누르세요.",
+        label_visibility="collapsed",
+        key=f"advance_input_{index}",
+        on_change=advance_sentence,
+        args=(index,),
+    )
+    if st.button("다음 문장 →", type="primary", use_container_width=True):
+        advance_sentence(index)
         st.rerun()
 
 else:
@@ -168,7 +174,7 @@ else:
 
 with st.expander("사용 방법"):
     st.write(
-        "문장을 한 번씩 무작위 순서로 풀고, 답을 입력하고 Enter 또는 제출 버튼을 누르면 정답 여부를 확인합니다. 채점 후 다음 화면의 입력란에서 Enter 또는 다음 버튼을 누르면 이동합니다. "
+        "문장을 한 번씩 무작위 순서로 풀고, 답을 입력하고 Enter 또는 제출 버튼을 누르면 정답 여부를 확인합니다. 채점 후 입력란을 클릭하고 Enter를 누르거나 다음 버튼을 누르면 이동합니다. "
         f"현재 답지에서 확인된 문장은 {len(answer_key)}개입니다. "
         "답지에서 찾지 못한 문장은 자동 채점하지 않습니다. "
         "입력 기록은 이 브라우저 세션에서 라운드가 끝날 때까지 볼 수 있습니다."
