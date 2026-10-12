@@ -118,6 +118,12 @@ if feedback and feedback["prompt"] == prompt:
         st.info("이 문장은 답지에서 확인되지 않아 자동 채점하지 않았습니다.")
 
     with st.form(f"next_form_{index}"):
+        st.text_input(
+            "다음 문장으로",
+            placeholder="Enter를 눌러 다음 문장으로 이동하세요.",
+            label_visibility="collapsed",
+            key=f"advance_input_{index}",
+        )
         next_clicked = st.form_submit_button("다음 문장 →", type="primary", use_container_width=True)
     if next_clicked:
         item = {"prompt": prompt, "answer": feedback["answer"]}
@@ -162,7 +168,7 @@ else:
 
 with st.expander("사용 방법"):
     st.write(
-        "문장을 한 번씩 무작위 순서로 풀고, 답을 입력하고 Enter 또는 제출 버튼을 누르면 정답 여부를 확인합니다. 채점 후에도 Enter 또는 다음 버튼으로 이동할 수 있습니다. "
+        "문장을 한 번씩 무작위 순서로 풀고, 답을 입력하고 Enter 또는 제출 버튼을 누르면 정답 여부를 확인합니다. 채점 후 다음 화면의 입력란에서 Enter 또는 다음 버튼을 누르면 이동합니다. "
         f"현재 답지에서 확인된 문장은 {len(answer_key)}개입니다. "
         "답지에서 찾지 못한 문장은 자동 채점하지 않습니다. "
         "입력 기록은 이 브라우저 세션에서 라운드가 끝날 때까지 볼 수 있습니다."
