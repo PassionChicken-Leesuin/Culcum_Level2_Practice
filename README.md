@@ -24,6 +24,8 @@ python -m streamlit run app.py
 
 Community Cloud 무료 앱은 **12시간 동안 트래픽이 없으면 잠들며**, 다음 방문자가 앱 화면의 깨우기 버튼을 눌러 다시 시작할 수 있습니다. 이 동작을 없애려면 Streamlit Community Cloud 대신 유료 상시 실행 서비스를 사용해야 합니다.
 
+현재 배포 주소: [level2-sentence-practice.streamlit.app](https://level2-sentence-practice.streamlit.app/)
+
 ## 깨우기 대기 없이 운영하기
 
 같은 `app.py`를 Render 같은 서비스의 **유료 Web Service**로 배포하면 됩니다. 저장소를 연결하고 다음 값을 설정합니다.
