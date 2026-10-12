@@ -91,14 +91,16 @@ with st.form(key=f"answer-{index}", clear_on_submit=True):
         "답 입력하고 다음 문장 →",
         type="primary",
         use_container_width=True,
-        disabled=not answer.strip(),
     )
 
-if submitted and answer.strip():
-    answers.append({"prompt": deck[index], "answer": answer.strip()})
-    st.session_state.answers = answers
-    st.session_state.index = index + 1
-    st.rerun()
+if submitted:
+    if answer.strip():
+        answers.append({"prompt": deck[index], "answer": answer.strip()})
+        st.session_state.answers = answers
+        st.session_state.index = index + 1
+        st.rerun()
+    else:
+        st.warning("영어 답을 입력한 뒤 다음 문장 버튼을 눌러 주세요.")
 
 with st.expander("사용 방법"):
     st.write(
